@@ -1,10 +1,8 @@
-# Coinbase Payment Link Gateway for Adobe Commerce
+# Coinbase Payment Link Gateway for Magento / Adobe Commerce
 
 Accept USDC payments on the Base network in your Adobe Commerce (Magento 2) store via the Coinbase Business Payment Link API.
 
 Customers select "Pay with Coinbase (USDC)" at checkout, get redirected to a Coinbase-hosted payment page to pay with USDC, and are returned to your store after payment. Webhook notifications confirm payment status asynchronously.
-
-https://github.com/user-attachments/assets/f5859ed4-d11d-4fd3-a501-52fdc28ec210
 
 ## Features
 
