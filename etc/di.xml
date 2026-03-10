@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <preference for="CoinbaseCommerce\PaymentGateway\Api\CoinbaseRepositoryInterface"
-                type="CoinbaseCommerce\PaymentGateway\Model\CoinbaseRepository"/>
-    <preference for="CoinbaseCommerce\PaymentGateway\Api\Data\CoinbaseInterface" type="CoinbaseCommerce\PaymentGateway\Model\Coinbase"/>
-    <preference for="CoinbaseCommerce\PaymentGateway\Api\Data\CoinbaseSearchResultInterface"
-                type="CoinbaseCommerce\PaymentGateway\Model\CoinbaseSearchResult"/>
-</config>

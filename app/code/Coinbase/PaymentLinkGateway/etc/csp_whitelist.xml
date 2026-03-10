@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+    <policies>
+        <policy id="connect-src">
+            <values>
+                <value id="coinbase_business" type="host">business.coinbase.com</value>
+                <value id="coinbase_business_sandbox" type="host">business-sandbox.coinbase.com</value>
+                <value id="coinbase_payments" type="host">payments.coinbase.com</value>
+                <value id="coinbase_pay" type="host">pay.coinbase.com</value>
+            </values>
+        </policy>
+        <policy id="frame-src">
+            <values>
+                <value id="coinbase_payments" type="host">payments.coinbase.com</value>
+                <value id="coinbase_pay" type="host">pay.coinbase.com</value>
+            </values>
+        </policy>
+        <policy id="img-src">
+            <values>
+                <value id="coinbase_payments" type="host">payments.coinbase.com</value>
+                <value id="coinbase_pay" type="host">pay.coinbase.com</value>
+            </values>
+        </policy>
+    </policies>
+</csp_whitelist>

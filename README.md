@@ -1,83 +1,254 @@
-# Coinbase Commerce Payment Module
-Accept Cryptocurrencies on your Magento 2 store with Coinbase Commerce module.
+# Coinbase Payment Link Gateway for Adobe Commerce
 
-## Prerequisite
-- SSL enabled.
+Accept USDC payments on the Base network in your Adobe Commerce (Magento 2) store via the Coinbase Business Payment Link API.
 
-## Accepted Cryptocurrencies
-1. It will accept Cryptocurrencies payment on your store with ease.
-2. Secure payment, goes directly into your own Cryptocurrency wallet.
-3. Following Cryptocurrencies are accepted by the Coinbase Commerce.
-    - Bitcoin
-    - Bitcoin Cash
-    - Ethereum
-    - Litecoin
-    - USD Coin
-    - DAI
+Customers select "Pay with Coinbase (USDC)" at checkout, get redirected to a Coinbase-hosted payment page to pay with USDC, and are returned to your store after payment. Webhook notifications confirm payment status asynchronously.
 
-## Create an Account
-If you don't have a Coinbase Commerce account, <a href="https://commerce.coinbase.com/dashboard/settings">Sign Up</a>.
+https://github.com/user-attachments/assets/f5859ed4-d11d-4fd3-a501-52fdc28ec210
 
-## Manual installation
+## Features
 
-#### For now, download the module and unzip it in the directory app/code of your "Magento Project" root.
+- **USDC on Base network** — 1:1 USD to USDC, no currency conversion
+- **Redirect-based flow** — customers pay on a secure Coinbase-hosted page
+- **Webhook-driven confirmation** — payment status updates via signed webhooks
+- **Sandbox support** — test the full flow with Base Sepolia testnet USDC
+- **Admin payment info** — view payment link ID, status, transaction hash (linked to BaseScan), and settlement breakdown
+- **Automatic cleanup** — cron job cancels stale pending orders after expiration
+- **Tamper-protected redirects** — HMAC-signed return/cancel URLs
+- **CSP whitelisted** — Coinbase domains pre-configured for Content Security Policy
 
-### In future, user can download it via composer by following the below steps.
-1. Sign in to your Magento server as a Magento file system owner.
-2. Navigate to the root of your Magento installation.
-3. Run the command to download module:
+## Requirements
 
-  ```bash
-	composer require coinbase/coinbase-commerce-magento
-  ```
-4. Run the following commands to install module:  
+- Adobe Commerce / Magento 2.4.7+
+- PHP 8.2+
+- Composer
+- A [Coinbase Developer Platform (CDP)](https://portal.cdp.coinbase.com) account with an API key
 
-  ```bash
-	bin/magento module:enable CoinbaseCommerce_PaymentGateway --clear-static-content
-    bin/magento setup:upgrade
-    bin/magento setup:static-content:deploy
-	bin/magento cache:clean 
-  ```
+## Installation
 
-## Generate API Credentials
+### Step 1: Install the module files
 
-1. Create an API Key <a href="https://commerce.coinbase.com/dashboard/settings"> Coinbase Commerce Dashboard </a> -> API keys -> Create an API key.
-2. Get the API Secret <a href="https://commerce.coinbase.com/dashboard/settings"> Coinbase Commerce Dashboard </a> -> Show Shared Secrets.
+Copy the module into your Adobe Commerce installation:
 
-## Enable Module in Magento 2 Admin
+```bash
+cp -r app/code/Coinbase/ <magento-root>/app/code/
+```
 
-1. Configure module in Stores -> Configuration -> Sales -> Payment Methods.
-2. Scroll down to 'Coinbase Commerce'. If you can't find 'Coinbase Commerce', try clearing your Magento cache.
-3. Enabled - Select "Yes" to enabled.
-4. Title - it will display on Checkout Page.
-5. New Order Status - Pending (By default).
-6. Sort Order - (Optional) enter integer value, Order with 0 shows at top in the list
-7. API Key - paste the API key. 
-8. API Secret - paste the API secret.
-9. CALLBACK URL - copy the given link to <a href="https://commerce.coinbase.com/dashboard/settings"> Coinbase Commerce Dashboard </a> -> Webhook subscriptions -> Add an endpoint.
+### Step 2: Install the JWT dependency
 
-Click "Save Config" on the upper right part of the screen.
+```bash
+cd <magento-root>
+composer require firebase/php-jwt:^7.0
+```
 
-## Step by Step Details:
-- At Checkout Page customer will enter his/her shipping address.
-- Select the payment method "Coinbase Commerce" and hit the "Place Order" button.
-- Coinbase Commerce module will redirect the customer to the Payment Interface. 
-- Under this payment window customer will have to pay within 15 minutes. 
-- Once paid customer will be redirected to Magento store with a Success or Failure message.
-- Order status will be "On Hold" in the following UNRESOLVED cases: (Multiple, Underpaid or Overpaid paymnet).
-- If payment is not received within 15 minutes, Order will be Cancelled.
+### Step 3: Enable the module
 
-## Resolving the Order Status Manually
-In order to resolve the order status of “On Hold” Order. Merchant/Admin will have to follow the given steps in sequence. 
-1. Navigate to Sales -> Orders -> Click "view".
-2. Click Unhold (Top Right).
-2. Locate the section “Notes for this order”.
-3. Add Comment and notify the customer.
-4. Generate the invoice manually.
+```bash
+bin/magento module:enable Coinbase_PaymentLinkGateway
+bin/magento setup:upgrade
+bin/magento setup:di:compile
+bin/magento setup:static-content:deploy -f
+bin/magento cache:flush
+```
 
+Verify the module is enabled:
 
-## Integrate with other e-commerce platforms
-[Coinbase Commerce Integrations](https://commerce.coinbase.com/integrate)
+```bash
+bin/magento module:status Coinbase_PaymentLinkGateway
+```
+
+## Configuration
+
+### Step 1: Create a CDP API key
+
+1. Go to the [Coinbase Developer Platform](https://portal.cdp.coinbase.com) and navigate to **API Keys → Secret API Keys**.
+2. Click **Create API key**.
+3. Set the signature algorithm to **ECDSA**.
+4. Under API restrictions, enable the **View** scope (required for Payment Links API).
+5. Save your **API key name** (e.g., `organizations/{org_id}/apiKeys/{key_id}`) and **EC private key** (PEM format).
+
+### Step 2: Create a webhook subscription
+
+Register a webhook to receive payment status updates. Use [cdpcurl](https://github.com/coinbase/cdpcurl) or any HTTP client:
+
+```bash
+cdpcurl -X POST \
+  -i "YOUR_API_KEY_ID" \
+  -s "YOUR_API_KEY_SECRET" \
+  "https://api.cdp.coinbase.com/platform/v2/data/webhooks/subscriptions" \
+  -d '{
+    "description": "Adobe Commerce payment link webhook",
+    "eventTypes": [
+      "payment_link.payment.success",
+      "payment_link.payment.failed",
+      "payment_link.payment.expired"
+    ],
+    "target": {
+      "url": "https://your-store.com/coinbase/payment/webhook",
+      "method": "POST"
+    },
+    "labels": {},
+    "isEnabled": true
+  }'
+```
+
+Save the `secret` value from the response — you'll need it in the next step.
+
+### Step 3: Configure the payment method in Admin
+
+1. Navigate to **Stores → Configuration → Sales → Payment Methods**.
+2. Expand the **Coinbase Payment Link (USDC)** section.
+3. Configure the following fields:
+
+| Field | Description |
+|-------|-------------|
+| **Enabled** | Set to **Yes** to activate the payment method |
+| **Title** | Display name at checkout (default: "Pay with Coinbase (USDC)") |
+| **Environment** | Select **Sandbox** for testing or **Production** for live payments |
+| **API Key Name** | Your CDP API key name (e.g., `organizations/{org_id}/apiKeys/{key_id}`) |
+| **API Private Key (PEM)** | Your EC private key in PEM format (stored encrypted) |
+| **Webhook Secret** | The `secret` from your webhook subscription response (stored encrypted) |
+| **Payment Link Expiration (Hours)** | Hours before a payment link expires (default: 24) |
+| **Debug Mode** | Enable to log API requests/responses (disable in production) |
+| **Payment from Applicable Countries** | Restrict by country if needed |
+| **Sort Order** | Controls position in the payment methods list |
+
+4. Click **Save Config** and flush the cache:
+
+```bash
+bin/magento cache:flush
+```
+
+## Payment Flow
+
+1. Customer adds items to cart and proceeds to checkout.
+2. Customer selects **"Pay with Coinbase (USDC)"** and clicks **Place Order**.
+3. Adobe Commerce creates the order in `pending_payment` state and calls the Coinbase API to create a payment link.
+4. Customer is redirected to the Coinbase payment page to pay with USDC from their wallet.
+5. After payment:
+   - **Success** — customer is redirected back to the order success page.
+   - **Cancel/Fail** — customer is redirected to the cart with their items restored.
+6. A webhook notification confirms the final payment status:
+   - `payment_link.payment.success` — order moves to `processing`, invoice is created, confirmation email is sent.
+   - `payment_link.payment.failed` — order is canceled.
+   - `payment_link.payment.expired` — order is canceled.
+
+## Sandbox Testing
+
+1. Set the **Environment** to **Sandbox** in the admin configuration.
+2. Use sandbox API keys from the CDP portal.
+3. Set your webhook URL to point to your development/staging environment (use a tool like [ngrok](https://ngrok.com) for local testing).
+4. Fund a test wallet with Base Sepolia USDC via the [CDP Faucet](https://portal.cdp.coinbase.com/products/faucet).
+5. Complete a test checkout and pay with the testnet USDC.
+
+## Refunds
+
+The Coinbase Payment Link API does not support refunds. Refunds must be processed outside of this plugin (e.g., via a direct USDC transfer to the customer). The admin payment info block displays a note about this.
+
+## Cron Job
+
+The module registers a cron job (`coinbase_cleanup_expired_orders`) that runs every 15 minutes. It:
+
+1. Finds orders in `pending_payment` state older than the configured expiration window.
+2. Checks the payment link status via the Coinbase API (to avoid canceling orders that were actually paid).
+3. Cancels orders whose payment links have expired.
+
+Ensure your Magento cron is running:
+
+```bash
+crontab -e
+# Add:
+* * * * * cd <magento-root> && php bin/magento cron:run >> var/log/cron.log 2>&1
+```
+
+## Troubleshooting
+
+### Payment method not showing at checkout
+- Verify the module is enabled: `bin/magento module:status Coinbase_PaymentLinkGateway`
+- Confirm **Enabled** is set to **Yes** in admin configuration.
+- Flush all caches: `bin/magento cache:flush`
+- Recompile DI: `bin/magento setup:di:compile`
+- Redeploy static content: `bin/magento setup:static-content:deploy -f`
+
+### "Unable to communicate with Coinbase payment service"
+- Check your API Key Name and Private Key are correct.
+- Verify the private key is in PEM format (starts with `-----BEGIN EC PRIVATE KEY-----`).
+- Ensure the environment setting matches the API keys (sandbox keys for sandbox, production keys for production).
+- Enable Debug Mode and check `var/log/system.log` for detailed request/response logs.
+
+### Webhooks not arriving
+- Verify your webhook URL is publicly accessible over HTTPS.
+- Check the webhook subscription is active via the CDP API.
+- Ensure the webhook secret matches the `secret` from the subscription response.
+- Check `var/log/system.log` for webhook signature validation errors.
+
+### Orders stuck in pending_payment
+- Verify webhooks are being received and processed.
+- Check the cron job is running: `bin/magento cron:run --group=default`
+- Review `var/log/system.log` for any webhook processing errors.
+
+## Module Structure
+
+```
+app/code/Coinbase/PaymentLinkGateway/
+├── registration.php                        # Module registration
+├── composer.json                           # Dependencies
+├── etc/
+│   ├── module.xml                          # Module declaration
+│   ├── config.xml                          # Default config values
+│   ├── di.xml                              # Gateway framework wiring
+│   ├── csp_whitelist.xml                   # CSP whitelist for Coinbase domains
+│   ├── crontab.xml                         # Expired order cleanup cron
+│   ├── frontend/
+│   │   ├── di.xml                          # ConfigProvider registration
+│   │   └── routes.xml                      # Frontend route: /coinbase/*
+│   └── adminhtml/
+│       └── system.xml                      # Admin config UI
+├── Gateway/
+│   ├── Config.php                          # Typed config accessors
+│   ├── Http/
+│   │   ├── TransferFactory.php             # JWT auth + HTTP request builder
+│   │   └── Client/
+│   │       └── PaymentLinkClient.php       # HTTP client for Coinbase API
+│   ├── Request/
+│   │   ├── PaymentLinkBuilder.php          # amount/currency/network/description
+│   │   └── PaymentLinkDataBuilder.php      # redirect URLs, metadata, expiry
+│   ├── Response/
+│   │   └── PaymentLinkHandler.php          # Stores API response on payment
+│   └── Validator/
+│       └── ResponseValidator.php           # Validates API response
+├── Service/
+│   ├── JwtGenerator.php                    # ECDSA (ES256) JWT generation
+│   ├── PaymentLinkService.php              # Get status / deactivate links
+│   └── WebhookSignatureValidator.php       # HMAC-SHA256 webhook verification
+├── Model/
+│   ├── Adminhtml/Source/
+│   │   └── Environment.php                 # Sandbox/Production dropdown
+│   └── Ui/
+│       └── ConfigProvider.php              # Checkout config provider
+├── Controller/Payment/
+│   ├── Create.php                          # Returns redirect URL as JSON
+│   ├── ReturnAction.php                    # Handles success redirect
+│   ├── Cancel.php                          # Handles cancel, restores cart
+│   └── Webhook.php                         # Processes webhook notifications
+├── Block/
+│   └── Info.php                            # Admin payment info display
+├── Cron/
+│   └── CleanupExpiredOrders.php            # Cancels stale pending orders
+└── view/frontend/
+    ├── requirejs-config.js
+    ├── layout/
+    │   └── checkout_index_index.xml        # Payment renderer registration
+    └── web/
+        ├── js/view/payment/
+        │   ├── method-renderer.js          # Renderer registration
+        │   └── coinbase-payment-link.js    # Payment UI + redirect logic
+        ├── template/payment/
+        │   └── coinbase-payment-link.html  # Checkout template
+        └── images/
+            └── coinbase-logo.svg           # Coinbase logo
+```
 
 ## License
-[Open Source License](LICENSE)
+
+MIT
