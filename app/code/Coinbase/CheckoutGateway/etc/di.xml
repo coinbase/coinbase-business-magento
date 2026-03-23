@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Payment Method Facade -->
+    <virtualType name="CoinbaseCheckoutFacade" type="Magento\Payment\Model\Method\Adapter">
+        <arguments>
+            <argument name="code" xsi:type="const">Coinbase\CheckoutGateway\Gateway\Config::CODE</argument>
+            <argument name="formBlockType" xsi:type="string">Magento\Payment\Block\Form</argument>
+            <argument name="infoBlockType" xsi:type="string">Coinbase\CheckoutGateway\Block\Info</argument>
+            <argument name="valueHandlerPool" xsi:type="object">CoinbaseCheckoutValueHandlerPool</argument>
+            <argument name="commandPool" xsi:type="object">CoinbaseCheckoutCommandPool</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Value Handler Pool -->
+    <virtualType name="CoinbaseCheckoutValueHandlerPool" type="Magento\Payment\Gateway\Config\ValueHandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="default" xsi:type="string">CoinbaseCheckoutConfigValueHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Config Value Handler -->
+    <virtualType name="CoinbaseCheckoutConfigValueHandler" type="Magento\Payment\Gateway\Config\ConfigValueHandler">
+        <arguments>
+            <argument name="configInterface" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Config</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Command Pool -->
+    <virtualType name="CoinbaseCheckoutCommandPool" type="Magento\Payment\Gateway\Command\CommandPool">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="initialize" xsi:type="string">CoinbaseCheckoutInitializeCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Initialize Command -->
+    <virtualType name="CoinbaseCheckoutInitializeCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">CoinbaseCheckoutInitializeRequest</argument>
+            <argument name="transferFactory" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Http\TransferFactory</argument>
+            <argument name="client" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Http\Client\CheckoutClient</argument>
+            <argument name="handler" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Response\CheckoutHandler</argument>
+            <argument name="validator" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Validator\ResponseValidator</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Builder Composite for Initialize -->
+    <virtualType name="CoinbaseCheckoutInitializeRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+        <arguments>
+            <argument name="builders" xsi:type="array">
+                <item name="checkout" xsi:type="string">Coinbase\CheckoutGateway\Gateway\Request\CheckoutBuilder</item>
+                <item name="checkout_data" xsi:type="string">Coinbase\CheckoutGateway\Gateway\Request\CheckoutDataBuilder</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Gateway Config -->
+    <type name="Coinbase\CheckoutGateway\Gateway\Config">
+        <arguments>
+            <argument name="methodCode" xsi:type="const">Coinbase\CheckoutGateway\Gateway\Config::CODE</argument>
+        </arguments>
+    </type>
+
+    <!-- Logger for debug -->
+    <virtualType name="CoinbaseCheckoutLogger" type="Magento\Payment\Model\Method\Logger">
+        <arguments>
+            <argument name="config" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Config</argument>
+        </arguments>
+    </virtualType>
+
+</config>
