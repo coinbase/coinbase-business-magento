@@ -32,7 +32,7 @@ class ConfigProvider implements ConfigProviderInterface
                     'title' => $this->config->getTitle(),
                     'redirectUrl' => $this->urlBuilder->getUrl('coinbase/payment/create'),
                     'logoUrl' => $this->assetRepository->getUrl('Coinbase_CheckoutGateway::images/coinbase-logo.svg'),
-                    'description' => __('Pay securely with USDC on Base network via Coinbase'),
+                    'description' => __('Pay securely with USDC via Coinbase'),
                     'environment' => $this->config->getEnvironment(),
                 ],
             ],
