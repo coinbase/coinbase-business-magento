@@ -168,6 +168,10 @@ crontab -e
 - Recompile DI: `bin/magento setup:di:compile`
 - Redeploy static content: `bin/magento setup:static-content:deploy -f`
 
+### "A webhook secret is required to enable Coinbase Business"
+- Set the **Webhook Secret** for the selected environment before enabling the payment method.
+- You can still disable the method or save other settings with the secret left blank.
+
 ### "Unable to initialize Coinbase payment"
 - Confirm the **Webhook Secret** is set for the selected environment (Production or Sandbox).
 - Check `var/log/system.log` for `Coinbase redirect HMAC: Webhook secret is not configured`.
@@ -225,6 +229,8 @@ app/code/Coinbase/CheckoutGateway/
 │   ├── RedirectHash.php                    # HMAC for return/cancel URL protection
 │   └── WebhookSignatureValidator.php       # HMAC-SHA256 webhook verification
 ├── Model/
+│   ├── Config/Backend/
+│   │   └── Active.php                      # Require webhook secret only when enabling
 │   ├── Adminhtml/Source/
 │   │   └── Environment.php                 # Sandbox/Production dropdown
 │   └── Ui/
