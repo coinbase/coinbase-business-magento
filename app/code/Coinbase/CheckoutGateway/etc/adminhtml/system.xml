@@ -35,8 +35,9 @@
                 <field id="webhook_secret" translate="label comment" type="obscure" sortOrder="60"
                        showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Production Webhook Secret</label>
-                    <comment><![CDATA[Secret from production webhook subscription for signature verification]]></comment>
+                    <comment><![CDATA[Required. Secret from your production webhook subscription. Used to verify webhooks and protect payment return/cancel URLs.]]></comment>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <validate>required-entry</validate>
                     <depends>
                         <field id="environment">production</field>
                     </depends>
@@ -44,8 +45,9 @@
                 <field id="sandbox_webhook_secret" translate="label comment" type="obscure" sortOrder="61"
                        showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Sandbox Webhook Secret</label>
-                    <comment><![CDATA[Secret from sandbox webhook subscription for signature verification]]></comment>
+                    <comment><![CDATA[Required. Secret from your sandbox webhook subscription. Used to verify webhooks and protect payment return/cancel URLs.]]></comment>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <validate>required-entry</validate>
                     <depends>
                         <field id="environment">sandbox</field>
                     </depends>

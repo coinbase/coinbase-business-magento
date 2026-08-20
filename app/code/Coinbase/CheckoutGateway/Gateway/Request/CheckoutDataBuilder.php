@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Coinbase\CheckoutGateway\Gateway\Request;
 
 use Coinbase\CheckoutGateway\Gateway\Config;
+use Coinbase\CheckoutGateway\Service\RedirectHash;
 use Magento\Framework\UrlInterface;
 use Magento\Payment\Gateway\Data\PaymentDataObjectInterface;
 use Magento\Payment\Gateway\Request\BuilderInterface;
@@ -13,6 +14,7 @@ class CheckoutDataBuilder implements BuilderInterface
 {
     public function __construct(
         private readonly Config $config,
+        private readonly RedirectHash $redirectHash,
         private readonly UrlInterface $urlBuilder
     ) {
     }
@@ -34,8 +36,7 @@ class CheckoutDataBuilder implements BuilderInterface
         $storeId = (int) $order->getStoreId();
         $quoteId = $payment->getAdditionalInformation('quote_id') ?? '';
 
-        // Generate HMAC hash for tamper protection on redirect URLs
-        $hash = $this->generateRedirectHash($orderId, $storeId);
+        $hash = $this->redirectHash->generate($orderId, $storeId);
 
         $successUrl = $this->urlBuilder->getUrl('coinbase/payment/return', [
             'order_id' => $orderId,
@@ -66,14 +67,5 @@ class CheckoutDataBuilder implements BuilderInterface
         }
 
         return $result;
-    }
-
-    /**
-     * Generate HMAC hash for redirect URL tamper protection.
-     */
-    private function generateRedirectHash(string $orderId, int $storeId): string
-    {
-        $secret = $this->config->getWebhookSecret($storeId);
-        return hash_hmac('sha256', $orderId . '|' . $storeId, $secret);
     }
 }
