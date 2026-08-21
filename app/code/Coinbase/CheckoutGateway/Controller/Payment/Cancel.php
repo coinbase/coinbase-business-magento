@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Coinbase\CheckoutGateway\Controller\Payment;
 
-use Coinbase\CheckoutGateway\Gateway\Config;
+use Coinbase\CheckoutGateway\Service\RedirectHash;
 use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\RequestInterface;
@@ -24,7 +24,7 @@ class Cancel implements HttpGetActionInterface
         private readonly OrderFactory $orderFactory,
         private readonly OrderManagementInterface $orderManagement,
         private readonly CheckoutSession $checkoutSession,
-        private readonly Config $config,
+        private readonly RedirectHash $redirectHash,
         private readonly MessageManager $messageManager,
         private readonly LoggerInterface $logger
     ) {
@@ -38,7 +38,7 @@ class Cancel implements HttpGetActionInterface
         try {
             $order = $this->orderFactory->create()->loadByIncrementId($orderId);
 
-            if (!$order->getId() || !$this->validateHash($orderId, (int) $order->getStoreId(), $hash)) {
+            if (!$order->getId() || !$this->redirectHash->isValid($orderId, (int) $order->getStoreId(), $hash)) {
                 $this->messageManager->addErrorMessage(__('Invalid cancel URL.'));
                 return $this->redirectToCart();
             }
@@ -63,18 +63,6 @@ class Cancel implements HttpGetActionInterface
         }
 
         return $this->redirectToCart();
-    }
-
-    private function validateHash(string $orderId, int $storeId, ?string $hash): bool
-    {
-        if (empty($hash)) {
-            return false;
-        }
-
-        $secret = $this->config->getWebhookSecret($storeId);
-        $expected = hash_hmac('sha256', $orderId . '|' . $storeId, $secret);
-
-        return hash_equals($expected, $hash);
     }
 
     private function restoreQuote(Order $order): void

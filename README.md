@@ -105,7 +105,7 @@ Save the `secret` value from the response — you'll need it in the next step.
 | **Environment** | Select **Sandbox** for testing or **Production** for live payments |
 | **API Key Name** | Your CDP API key name (e.g., `organizations/{org_id}/apiKeys/{key_id}`) |
 | **API Private Key (PEM)** | Your EC private key in PEM format (stored encrypted) |
-| **Webhook Secret** | The `secret` from your webhook subscription response (stored encrypted) |
+| **Webhook Secret** | **Required.** The `secret` from your webhook subscription response (stored encrypted). Payments cannot be placed until this is set. |
 | **Checkout Expiration (Hours)** | Hours before a checkout expires (default: 24) |
 | **Debug Mode** | Enable to log API requests/responses (disable in production) |
 | **Payment from Applicable Countries** | Restrict by country if needed |
@@ -168,6 +168,14 @@ crontab -e
 - Recompile DI: `bin/magento setup:di:compile`
 - Redeploy static content: `bin/magento setup:static-content:deploy -f`
 
+### "A webhook secret is required to enable Coinbase Business"
+- Set the **Webhook Secret** for the selected environment before enabling the payment method.
+- You can still disable the method or save other settings with the secret left blank.
+
+### "Unable to initialize Coinbase payment"
+- Confirm the **Webhook Secret** is set for the selected environment (Production or Sandbox).
+- Check `var/log/system.log` for `Coinbase redirect HMAC: Webhook secret is not configured`.
+
 ### "Unable to communicate with Coinbase payment service"
 - Check your API Key Name and Private Key are correct.
 - Verify the private key is in PEM format (starts with `-----BEGIN EC PRIVATE KEY-----`).
@@ -218,8 +226,11 @@ app/code/Coinbase/CheckoutGateway/
 ├── Service/
 │   ├── JwtGenerator.php                    # ECDSA (ES256) JWT generation
 │   ├── CheckoutService.php                 # Get status / deactivate checkouts
+│   ├── RedirectHash.php                    # HMAC for return/cancel URL protection
 │   └── WebhookSignatureValidator.php       # HMAC-SHA256 webhook verification
 ├── Model/
+│   ├── Config/Backend/
+│   │   └── Active.php                      # Require webhook secret only when enabling
 │   ├── Adminhtml/Source/
 │   │   └── Environment.php                 # Sandbox/Production dropdown
 │   └── Ui/

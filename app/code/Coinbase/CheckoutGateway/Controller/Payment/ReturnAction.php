@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Coinbase\CheckoutGateway\Controller\Payment;
 
-use Coinbase\CheckoutGateway\Gateway\Config;
+use Coinbase\CheckoutGateway\Service\RedirectHash;
 use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\RequestInterface;
@@ -23,7 +23,7 @@ class ReturnAction implements HttpGetActionInterface
         private readonly ResultFactory $resultFactory,
         private readonly OrderFactory $orderFactory,
         private readonly CheckoutSession $checkoutSession,
-        private readonly Config $config,
+        private readonly RedirectHash $redirectHash,
         private readonly MessageManager $messageManager,
         private readonly LoggerInterface $logger
     ) {
@@ -37,7 +37,7 @@ class ReturnAction implements HttpGetActionInterface
         try {
             $order = $this->orderFactory->create()->loadByIncrementId($orderId);
 
-            if (!$order->getId() || !$this->validateHash($orderId, (int) $order->getStoreId(), $hash)) {
+            if (!$order->getId() || !$this->redirectHash->isValid($orderId, (int) $order->getStoreId(), $hash)) {
                 $this->messageManager->addErrorMessage(__('Invalid return URL.'));
                 return $this->redirectToCart();
             }
@@ -77,18 +77,6 @@ class ReturnAction implements HttpGetActionInterface
             $this->messageManager->addErrorMessage(__('An error occurred while processing your payment return.'));
             return $this->redirectToCart();
         }
-    }
-
-    private function validateHash(string $orderId, int $storeId, ?string $hash): bool
-    {
-        if (empty($hash)) {
-            return false;
-        }
-
-        $secret = $this->config->getWebhookSecret($storeId);
-        $expected = hash_hmac('sha256', $orderId . '|' . $storeId, $secret);
-
-        return hash_equals($expected, $hash);
     }
 
     private function redirectToCart(): ResultInterface
