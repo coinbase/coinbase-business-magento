@@ -134,6 +134,14 @@ class Webhook implements HttpPostActionInterface, CsrfAwareActionInterface
      */
     private function handlePaymentSuccess(Order $order, array $payload): void
     {
+        // Double-check idempotency inside the success handler: a retried or
+        // replayed success webhook must never create a second invoice for an
+        // order that is already processing, complete, or closed.
+        $state = $order->getState();
+        if (in_array($state, [Order::STATE_PROCESSING, Order::STATE_COMPLETE, Order::STATE_CLOSED])) {
+            return;
+        }
+
         $payment = $order->getPayment();
 
         // Update payment additional info
