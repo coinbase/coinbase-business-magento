@@ -72,14 +72,17 @@ class WebhookSignatureValidator
                 return false;
             }
 
-            // Check timestamp for replay protection
+            // Enforce a bounded freshness window (replay protection): accept the
+            // timestamp only if it is not in the future and not older than the
+            // maximum age. A future-dated timestamp (negative age) is rejected
+            // as well.
             $webhookTime = (int) $timestamp;
             $currentTime = time();
-            $ageMinutes = ($currentTime - $webhookTime) / 60;
+            $ageSeconds = $currentTime - $webhookTime;
 
-            if ($ageMinutes > self::MAX_AGE_MINUTES) {
+            if ($ageSeconds < 0 || $ageSeconds > self::MAX_AGE_MINUTES * 60) {
                 $this->logger->error(
-                    sprintf('Coinbase webhook: Timestamp too old (%.1f minutes > %d minutes)', $ageMinutes, self::MAX_AGE_MINUTES)
+                    sprintf('Coinbase webhook: Timestamp outside allowed window (age %d seconds)', $ageSeconds)
                 );
                 return false;
             }
