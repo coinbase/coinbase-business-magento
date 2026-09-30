@@ -10,6 +10,7 @@
             <argument name="infoBlockType" xsi:type="string">Coinbase\CheckoutGateway\Block\Info</argument>
             <argument name="valueHandlerPool" xsi:type="object">CoinbaseCheckoutValueHandlerPool</argument>
             <argument name="commandPool" xsi:type="object">CoinbaseCheckoutCommandPool</argument>
+            <argument name="validatorPool" xsi:type="object">CoinbaseCheckoutValidatorPool</argument>
         </arguments>
     </virtualType>
 
@@ -26,6 +27,23 @@
     <virtualType name="CoinbaseCheckoutConfigValueHandler" type="Magento\Payment\Gateway\Config\ConfigValueHandler">
         <arguments>
             <argument name="configInterface" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Config</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Validator Pool: without this, Adapter::canUseForCurrency()/canUseForCountry() fail open -->
+    <virtualType name="CoinbaseCheckoutValidatorPool" type="Magento\Payment\Gateway\Validator\ValidatorPool">
+        <arguments>
+            <argument name="validators" xsi:type="array">
+                <item name="currency" xsi:type="string">Coinbase\CheckoutGateway\Gateway\Validator\CurrencyValidator</item>
+                <item name="country" xsi:type="string">CoinbaseCheckoutCountryValidator</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Country Validator (enforces "Payment from Applicable Countries") -->
+    <virtualType name="CoinbaseCheckoutCountryValidator" type="Magento\Payment\Gateway\Validator\CountryValidator">
+        <arguments>
+            <argument name="config" xsi:type="object">Coinbase\CheckoutGateway\Gateway\Config</argument>
         </arguments>
     </virtualType>
 

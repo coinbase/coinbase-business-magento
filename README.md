@@ -6,7 +6,7 @@ Customers select "Pay with Coinbase (USDC)" at checkout, get redirected to a Coi
 
 ## Features
 
-- **USDC on Base network** — 1:1 USD to USDC, no currency conversion
+- **USDC on Base network** — 1:1 USD to USDC, no currency conversion (requires a USD base currency)
 - **Redirect-based flow** — customers pay on a secure Coinbase-hosted page
 - **Webhook-driven confirmation** — payment status updates via signed webhooks
 - **Sandbox support** — test the full flow with Base Sepolia testnet USDC
@@ -21,6 +21,7 @@ Customers select "Pay with Coinbase (USDC)" at checkout, get redirected to a Coi
 - PHP 8.2+
 - Composer
 - A [Coinbase Developer Platform (CDP)](https://portal.cdp.coinbase.com) account with an API key
+- A store (or website) whose **base currency is USD**. Checkouts are created for the order's base grand total as USDC (1:1 with USD); the method is hidden and cannot be enabled for non-USD base currencies.
 
 ## Installation
 
@@ -127,7 +128,7 @@ bin/magento cache:flush
    - **Success** — customer is redirected back to the order success page.
    - **Cancel/Fail** — customer is redirected to the cart with their items restored.
 6. A webhook notification confirms the final payment status:
-   - `checkout.payment.success` — order moves to `processing`, invoice is created, confirmation email is sent.
+   - `checkout.payment.success` — the settled USDC amount is reconciled against the order's base grand total; if it covers the order, the order moves to `processing`, an invoice is created, and the confirmation email is sent. If it does not (underpayment, wrong currency, or a non-USD order), the order is placed **on hold** with a status-history comment and no invoice is created.
    - `checkout.payment.failed` — order is canceled.
    - `checkout.payment.expired` — order is canceled.
 
@@ -168,6 +169,11 @@ crontab -e
 - Recompile DI: `bin/magento setup:di:compile`
 - Redeploy static content: `bin/magento setup:static-content:deploy -f`
 
+### "Coinbase Business can only be enabled for a USD base currency"
+- The module only supports stores whose base currency (**Stores > Configuration > General > Currency Setup > Base Currency**) is USD.
+- On multi-website installations with website-scoped base currencies, enable the method at the scope of the USD website rather than at the default scope.
+- Even when enabled, the method is hidden at checkout for any store whose base currency is not USD.
+
 ### "A webhook secret is required to enable Coinbase Business"
 - Set the **Webhook Secret** for the selected environment before enabling the payment method.
 - You can still disable the method or save other settings with the secret left blank.
@@ -187,6 +193,11 @@ crontab -e
 - Check the webhook subscription is active via the CDP API.
 - Ensure the webhook secret matches the `secret` from the subscription response.
 - Check `var/log/system.log` for webhook signature validation errors.
+
+### Orders placed on hold after a Coinbase payment
+- The webhook reported a settled amount or currency that does not cover the order's base grand total, or the order's base currency is not USD.
+- Review the order's status history and the **Reconciliation Error** field in the payment information, then resolve manually (refund or collect the difference) before fulfilling.
+- Check `var/log/system.log` for `Coinbase webhook: Payment not reconciled`.
 
 ### Orders stuck in pending_payment
 - Verify webhooks are being received and processed.
@@ -217,11 +228,12 @@ app/code/Coinbase/CheckoutGateway/
 │   │   └── Client/
 │   │       └── CheckoutClient.php          # HTTP client for Coinbase API
 │   ├── Request/
-│   │   ├── CheckoutBuilder.php             # amount/currency/network/description
+│   │   ├── CheckoutBuilder.php             # amount/currency/network/description (USD base currency only)
 │   │   └── CheckoutDataBuilder.php         # redirect URLs, metadata, expiry
 │   ├── Response/
 │   │   └── CheckoutHandler.php             # Stores API response on payment
 │   └── Validator/
+│       ├── CurrencyValidator.php           # Restricts the method to USD base-currency stores
 │       └── ResponseValidator.php           # Validates API response
 ├── Service/
 │   ├── JwtGenerator.php                    # ECDSA (ES256) JWT generation
@@ -230,7 +242,7 @@ app/code/Coinbase/CheckoutGateway/
 │   └── WebhookSignatureValidator.php       # HMAC-SHA256 webhook verification
 ├── Model/
 │   ├── Config/Backend/
-│   │   └── Active.php                      # Require webhook secret only when enabling
+│   │   └── Active.php                      # Require USD base currency + webhook secret when enabling
 │   ├── Adminhtml/Source/
 │   │   └── Environment.php                 # Sandbox/Production dropdown
 │   └── Ui/
@@ -239,7 +251,7 @@ app/code/Coinbase/CheckoutGateway/
 │   ├── Create.php                          # Returns redirect URL as JSON
 │   ├── ReturnAction.php                    # Handles success redirect
 │   ├── Cancel.php                          # Handles cancel, restores cart
-│   └── Webhook.php                         # Processes webhook notifications
+│   └── Webhook.php                         # Processes webhook notifications, reconciles settled amount
 ├── Block/
 │   └── Info.php                            # Admin payment info display
 ├── Cron/
