@@ -12,6 +12,14 @@ use Magento\Payment\Gateway\Config\Config as GatewayConfig;
 class Config extends GatewayConfig
 {
     public const CODE = 'coinbase_checkout';
+
+    /**
+     * The checkout is created for the order's base grand total denominated as
+     * USDC (1:1 with USD), so only stores with a USD base currency are supported.
+     */
+    public const SUPPORTED_BASE_CURRENCY = 'USD';
+    public const SETTLEMENT_CURRENCY = 'USDC';
+
     private const API_BASE_URL_PRODUCTION = 'https://business.coinbase.com';
     private const API_BASE_URL_SANDBOX = 'https://business.coinbase.com/sandbox';
 
@@ -22,6 +30,11 @@ class Config extends GatewayConfig
         string $pathPattern = GatewayConfig::DEFAULT_PATH_PATTERN
     ) {
         parent::__construct($scopeConfig, $methodCode, $pathPattern);
+    }
+
+    public static function isSupportedBaseCurrency(?string $currencyCode): bool
+    {
+        return strtoupper(trim((string) $currencyCode)) === self::SUPPORTED_BASE_CURRENCY;
     }
 
     public function isActive(?int $storeId = null): bool

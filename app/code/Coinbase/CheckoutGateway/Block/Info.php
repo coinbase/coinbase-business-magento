@@ -26,6 +26,7 @@ class Info extends ConfigurableInfo
             'coinbase_checkout_expires_at' => __('Expires At'),
             'coinbase_transaction_hash' => __('Transaction Hash'),
             'coinbase_settlement' => __('Settlement'),
+            'coinbase_reconciliation_error' => __('Reconciliation Error'),
         ];
 
         return $labels[$field] ?? $field;
