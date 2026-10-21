@@ -4,9 +4,10 @@ Thank you for your interest in contributing! This guide explains how to get star
 
 ## Prerequisites
 
-- Adobe Commerce / Magento 2.4.7+
-- PHP 8.2+
+- Adobe Commerce / Magento 2.4.7 with PHP 8.2.35+ or 8.3.36+, or Magento 2.4.8 with PHP 8.3.36+ or 8.4.27+ (within each PHP minor release line)
 - Composer
+
+Follow the [PHP runtime security preflight](README.md#php-runtime-security) before installing or updating the module: update the actual web, CLI, and cron runtimes, restart PHP workers and applicable web servers, and verify the versions in use. Copying the module into `app/code` bypasses its Composer PHP constraint. Updating this repository or installing the JWT dependency does not patch the host's PHP interpreter. See the preflight for vendor-backported builds.
 
 ## Getting Started
 

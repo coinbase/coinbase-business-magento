@@ -4,7 +4,7 @@
     "type": "magento2-module",
     "license": "MIT",
     "require": {
-        "php": "~8.2",
+        "php": "~8.2.35 || ~8.3.36 || ~8.4.27",
         "firebase/php-jwt": "^7.0",
         "magento/framework": "*",
         "magento/module-payment": "*",
