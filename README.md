@@ -17,11 +17,30 @@ Customers select "Pay with Coinbase (USDC)" at checkout, get redirected to a Coi
 
 ## Requirements
 
-- Adobe Commerce / Magento 2.4.7+
-- PHP 8.2+
+- Adobe Commerce / Magento 2.4.7 or 2.4.8 with a compatible PHP version from the table below
+- PHP 8.2.35+, 8.3.36+, or 8.4.27+ within the selected minor release line
 - Composer
 - A [Coinbase Developer Platform (CDP)](https://portal.cdp.coinbase.com) account with an API key
 - A store (or website) whose **base currency is USD**. Checkouts are created for the order's base grand total as USDC (1:1 with USD); the method is hidden and cannot be enabled for non-USD base currencies.
+
+Choose the PHP minor release supported by your Magento version; see [Adobe's system requirements](https://experienceleague.adobe.com/en/docs/commerce-operations/installation-guide/system-requirements).
+
+| Magento version | Compatible patched PHP versions |
+|-----------------|---------------------------------|
+| 2.4.7 | 8.2.35+ within 8.2, or 8.3.36+ within 8.3 |
+| 2.4.8 | 8.3.36+ within 8.3, or 8.4.27+ within 8.4 |
+
+### PHP runtime security
+
+[CVE-2026-109618 and CVE-2026-109619](https://www.php.net/archive/2026.php#2026-10-21-5) are vulnerabilities in the PHP interpreter. The minimum patch versions above include their fixes. Installing or updating this module changes its PHP requirements; it does **not** update the PHP interpreter on your server.
+
+Before installing or updating the module:
+
+1. Have your hosting provider or system administrator update PHP to a patched release in a compatible minor line, then restart all PHP workers and applicable web servers so the new runtime is used.
+2. Verify the PHP runtime serving storefront and webhook requests through your host's control panel or administrator. Also check CLI and cron runtimes (`php -v` and `php --ini` help identify the CLI installation). A patched CLI does not establish that PHP-FPM, Apache, or other web workers are patched.
+3. Complete these checks before enabling the module. The copy installation below loads the module from `app/code` without installing its Composer package, so Composer does not enforce this module's PHP constraint. Installing the JWT dependency alone does not check it either.
+
+Some distribution vendors provide backported fixes under older version strings. Obtain vendor confirmation that **both** CVEs are fixed; Composer cannot verify those backports and may reject the older version. Prefer a supported runtime in the version ranges above.
 
 ## Installation
 
